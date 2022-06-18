@@ -1,0 +1,28 @@
+{% load tz %}
+
+<div class="mt-4 border table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+            {% for header in subs_table.headers %}
+                <th scope="col">
+                    {{ header }}
+                </th>
+            {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in subs_table.dataset %}
+                <tr>
+                    <td>{{ row.email }}</td>
+                    <td>{{ row.cost_value }}</td>
+                    <td>{{ row.revenue }}</td>
+                    <td>{{ row.commission }}</td>
+                    <td>{{ row.reg_date|localtime|date:"d/m/Y G:i" }}</td>
+                    <td>{{ row.period }} мес.</td>
+                    <td>{{ row.tariff }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

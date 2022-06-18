@@ -1,0 +1,70 @@
+{% load custom_tags %}
+{% new_list "client_email" "tariff" "period" as main_list %}
+
+<div class="border p-3 mt-2 mb-3 bg-light rounded m-lg-auto" style="max-width: 500px;" id="form">
+    <form action="{% url 'myapp:subscribe' %}" method="post" class="row g-2">
+        {% csrf_token %}
+        {% for field in form %}
+            {{ field.as_hidden }}
+        {% endfor %}
+
+        <p class="mb-0 fw-bold">Основные параметры</p>
+        <hr class="mt-2 mb-0">
+
+        <div class="col-12">
+            <label class="form-label">Email пользователя Adesk</label>
+            <span class="badge fs-6 bg-secondary fw-normal text-wrap mb-0">{{ form.client_email.value }}</span>
+        </div>
+
+        <div class="col-sm-12 mt-3">
+            <label class="form-label pe-sm-1">Тариф</label>
+            <p class="badge fs-6 bg-secondary fw-normal text-wrap mb-0">{{ form.tariff|choices_display:form.tariff.value}}</p>
+            <label class="form-label px-sm-1">на период</label>
+            <p class="badge fs-6 bg-secondary fw-normal text-wrap mb-0">{{ form.period.value }}</p><span class="ps-sm-1"> мес.</span>
+        </div>
+
+        <div class="col-sm-12 mt-2 border-top">
+            <label class="form-label pe-sm-1">Стоимость:</label>
+            <p class="text-wrap px-2 fs-5 d-inline">{{ pricing.tariff.price }}</p>
+        </div>
+
+        <p class="mb-0 fw-bold pt-2">Квоты тарифа</p>
+        <hr class="mt-2 mb-0">
+
+        {% for field in form %}
+            {% if field.name not in main_list %}
+                <div class="col-12">
+                    <label class="form-label">{{ field.label }}:</label>
+                    <p class="badge ms-3 fs-6 bg-secondary fw-normal text-wrap mb-0">{{ field.value }}</p>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <div class="col-12 mt-2 border-top">
+            <label class="form-label pe-sm-1">Стоимость:</label>
+            <p class="text-wrap px-2 fs-5 d-inline" style="/* color: #fd7e14; */">
+                {% for extraQuota in pricing.extraQuotas %}
+                    {% if not forloop.last %}
+                        {{ extraQuota.price }} +
+                    {% else %}
+                        {{ extraQuota.price }}
+                    {% endif %}
+                {% endfor %}
+            </p>
+            <span class="fs-5"> = {{ pricing.quotas_sum }}</span>
+        </div>
+
+        <div class="col-12 mt-2">
+            <div class="mark d-inline py-2">
+                <label class="form-label fs-5 pe-sm-1">Итого:</label>
+                <p class="text-wrap px-2 fs-5 d-inline">{{ pricing.totalPrice }}</p>
+            </div>
+        </div>
+
+        <div class="col-12 mt-3 d-sm-flex justify-content-between align-items-end">
+                <button type="submit" class="btn btn-primary btn-lg px-4">Оформить подписку</button>
+                <a href="{% url 'myapp:account_profile' %}" class="text-secondary d-block d-sm-inline pe-sm-2 pb-sm-1 pt-4 pt-sm-0 ps-1 ps-sm-0">Отменить</a>
+        </div>
+
+    </form>
+</div>
