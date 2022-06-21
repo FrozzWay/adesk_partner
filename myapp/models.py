@@ -39,9 +39,9 @@ class MyUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    is_active = models.BooleanField(default=False)
-    is_staff = models.BooleanField(default=False)
-    date_activated = models.DateTimeField('date activated', null=True)
+    is_active = models.BooleanField(default=False, verbose_name="Активирован")
+    is_staff = models.BooleanField(default=False, verbose_name="Полномочия администратора")
+    date_activated = models.DateTimeField(verbose_name="Дата активации", null=True)
 
     objects = MyUserManager()
 
@@ -59,15 +59,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Partner(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    INN = models.CharField(max_length=32)
-    phone_number = models.CharField(max_length=32)
-    first_name = models.CharField(max_length=32)
-    last_name = models.CharField(max_length=32)
-    company_name = models.CharField(max_length=64, null=True, blank=True)
-    debt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    contract_number = models.CharField(max_length=32, null=True, blank=True)
-    commission = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
-    date_registered = models.DateTimeField('date registered')
+    INN = models.CharField(max_length=32, verbose_name="ИНН")
+    phone_number = models.CharField(max_length=32, verbose_name="Номер телефона")
+    first_name = models.CharField(max_length=32, verbose_name="Имя")
+    last_name = models.CharField(max_length=32, verbose_name="Фамилия")
+    company_name = models.CharField(max_length=64, null=True, blank=True, verbose_name="Наименование компании")
+    debt = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Задолженность")
+    contract_number = models.CharField(max_length=32, null=True, blank=True, verbose_name="Номер договора")
+    commission = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, verbose_name="Процент комисии")
+    date_registered = models.DateTimeField(verbose_name="Дата подачи заявки", null=True)
 
     def __str__(self):
         name = f"{self.first_name} {self.last_name}"
@@ -77,14 +77,14 @@ class Partner(models.Model):
 
 
 class Subscription(models.Model):
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE)
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name="Партнёр")
     email = models.EmailField()
-    cost_value = models.IntegerField()
-    commission = models.DecimalField(max_digits=3, decimal_places=1)
-    reg_date = models.DateTimeField()
-    period = models.IntegerField()
-    tariff = models.CharField(max_length=32)
-    quotas = models.JSONField(null=True, blank=True)
+    cost_value = models.IntegerField(verbose_name="Итоговая стоимость")
+    commission = models.DecimalField(max_digits=3, decimal_places=1, verbose_name="Процент комиссии")
+    reg_date = models.DateTimeField(verbose_name="Дата оформления")
+    period = models.IntegerField(verbose_name="Период (мес.)")
+    tariff = models.CharField(max_length=32, verbose_name="Тариф")
+    quotas = models.JSONField(null=True, blank=True, verbose_name="Квоты")
 
     def __str__(self):
         return self.email

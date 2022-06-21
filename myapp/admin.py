@@ -2,7 +2,6 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.utils import timezone
 from django_object_actions import DjangoObjectActions
 
@@ -10,40 +9,50 @@ from .models import User, Partner, Subscription
 
 
 class UserCreationForm(forms.ModelForm):
-    """A form for creating new users through admin."""
 
-    password_field = forms.CharField(required=False, label='Password', widget=forms.PasswordInput)
+    password_field = forms.CharField(required=False, label='Пароль', widget=forms.PasswordInput)
 
     class Meta:
         model = User
         fields = "__all__"
+        help_texts = {"is_active": "Пользователь не сможет авторизоваться и подписывать клиентов, если неактивен.",
+                      "is_staff": "Не устанавливать для партнёров!"}
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        emptyStr_to_None = lambda i: i or None
-        password = emptyStr_to_None(self.cleaned_data["password_field"])
-        user.set_password(password)
+        password = self.cleaned_data["password_field"]
+        is_active = self.cleaned_data['is_active']
+        if is_active:
+            user.date_activated = timezone.now()
+        user.set_password(password if password else None)
         if commit:
             user.save()
         return user
 
 
 class UserChangeForm(forms.ModelForm):
-    """A form for updating users. Replaces the password field with admin's
-    disabled password hash display field.
-    """
 
-    password = ReadOnlyPasswordHashField()
+    password_field = forms.CharField(required=False, label='Новый пароль', widget=forms.PasswordInput)
 
     class Meta:
         model = User
-        fields = ('email', 'is_active')
-        help_texts = {"is_active": "While active partner will be allowed to checkout clients"}
+        fields = ('email', 'is_active',)
+        help_texts = {"is_active": "Пользователь не сможет авторизоваться и подписывать клиентов, если неактивен."}
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data['password_field']
+        if password:
+            user.set_password(password)
+        if commit:
+            user.save()
+        return user
 
 
 class PartnerInline(admin.StackedInline):
     model = Partner
     can_delete = False
+    readonly_fields = ('date_registered',)
 
 
 class UserAdmin(DjangoObjectActions, BaseUserAdmin):
@@ -55,29 +64,28 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
 
     change_actions = ('deactivate', 'make_active', 'send_credentials_via_email')
 
-    @admin.display()
-    def partner(self, obj):
+    @admin.display(description="Партнёр")
+    def partner_d(self, obj):
         return obj.partner.__str__()
 
-    @admin.display()
+    @admin.display(description="Дата подачи заявки")
     def date_registered(self, obj):
         return obj.partner.date_registered
 
     # The fields to be used in displaying the User model.
-    list_display = ('__str__', 'partner', 'date_registered', 'is_active', 'date_activated')
+    list_display = ('__str__', 'partner_d', 'date_registered', 'is_active', 'date_activated')
     list_filter = ('is_staff',)
+    readonly_fields = ('password',)
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Permissions', {'fields': ('is_active',)}),
+        (None, {'fields': ('email', 'password_field')}),
+        ('Права', {'fields': ('is_active',)}),
     )
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
 
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'password_field', 'is_active'),
-        }),
+        (None, {'fields': ('email', 'password_field')}),
+        ('Права', {'fields': ('is_active', 'is_staff')}),
     )
 
     search_fields = ['email', 'partner__first_name', 'partner__last_name', 'partner__company_name']
@@ -98,6 +106,7 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
         obj.date_activated = timezone.now()
         obj.save(update_fields=['is_active', 'date_activated'])
         self.message_user(request, "Account set to active", level=messages.SUCCESS)
+
     make_active.label = "Activate"
 
     def deactivate(self, request, obj):

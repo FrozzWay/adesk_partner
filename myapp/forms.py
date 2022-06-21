@@ -3,6 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.forms import TextInput, PasswordInput
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from requests import get as api_get
 
 from .models import User, Partner
 
@@ -62,7 +63,7 @@ class CustomAuthForm(AuthenticationForm):
 
 class SubscribeForm(forms.Form):
     client_email = forms.EmailField()
-    period = forms.IntegerField(min_value=1)
+    period = forms.IntegerField(widget=forms.Select)
     tariff = forms.ChoiceField(choices=())
 
     def __init__(self, tariffs, quotas, *args, **kwargs):
@@ -73,5 +74,17 @@ class SubscribeForm(forms.Form):
             code = quota['code']
             self.fields[code] = forms.IntegerField(label=quota['name'], min_value=1)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        period = cleaned_data['period']
+        tariff_code = cleaned_data['tariff']
+        tariff_json = api_get('https://adesk.ru/api/tariffs').json()
 
+        tariffs = {}
+        for t in tariff_json['tariffs']:
+            tariffs[t['code']] = t['pricing']
 
+        if str(period) not in tariffs[tariff_code].keys():
+            raise ValidationError('input period value не соответствует тарифу')
+
+        return cleaned_data

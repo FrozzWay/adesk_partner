@@ -19,25 +19,25 @@ from .models import Partner, Subscription
 def get_tariffs():
     """
     Возвращает список тарифов и квот с их кодами и названиями.
-     \n tariffs = [ (*code*, *name*), ... ]
+     \n tariffs_choices = [ (*code*, *name*), ... ]
      \n quotas = [ {*code*: "", *name*: ""}, ... ]
     """
     tariff_json = api_get('https://adesk.ru/api/tariffs').json()
-    tariffs = [(obj['code'], obj['name']) for obj in tariff_json['tariffs']]
+    tariffs_choices = [(obj['code'], obj['name']) for obj in tariff_json['tariffs']]
     quotas = tariff_json['tariffs'][0]['quotas']
 
-    return tariffs, quotas
+    return tariffs_choices, quotas, tariff_json
 
 
 # Затычка api
 def retrieve_data_from_request(request):
     """
     Возвращает
-     \n tariffs = [ (*code*, *name*), ... ]  -- список существующих тарифов
+     \n tariffs_choices = [ (*code*, *name*), ... ]  -- список существующих тарифов для заполнения choices
      \n quotas = [ {*code*: "", *name*: ""}, ... ] -- список существующих квот
      \n pricing = {...} -- рассчитанная стоимость подписки для переданных в запросе данных
     """
-    tariffs, quotas = get_tariffs()
+    tariffs_choices, quotas, tariffs_json = get_tariffs()
 
     api_data = {
         'client_email': request.POST.get('client_email'),
@@ -55,7 +55,7 @@ def retrieve_data_from_request(request):
 
     pricing['quotas_sum'] = sum([q['price'] for q in pricing['extraQuotas']])
 
-    return tariffs, quotas, pricing
+    return tariffs_choices, quotas, pricing
 
 
 @require_http_methods(["GET", "POST"])
@@ -92,9 +92,9 @@ class MyLoginView(LoginView):
 
 @login_required(login_url='myapp:login')
 def account_profile(request):
-    tariffs, quotas = get_tariffs()
+    tariffs_choices, quotas, tariffs_json = get_tariffs()
 
-    subscribe_form = SubscribeForm(tariffs, quotas)
+    subscribe_form = SubscribeForm(tariffs_choices, quotas)
 
     partner = Partner.objects.get(user__email=request.user.email)
     revenue_func = F('cost_value')*F('commission')/100
@@ -109,6 +109,7 @@ def account_profile(request):
                       'overall': overall,
                       'subscribe_form': subscribe_form,
                       'checkout': False,
+                      'tariff_json': tariffs_json,
                       'page': {'profile': {'active': 'active'}}
                   })
 
@@ -170,9 +171,9 @@ def checkout(request):
     if request.method == 'GET':
         return redirect('myapp:account_profile')
 
-    tariffs, quotas, pricing = retrieve_data_from_request(request)
+    tariffs_choices, quotas, pricing = retrieve_data_from_request(request)
 
-    subscribe_form = SubscribeForm(tariffs, quotas, request.POST)
+    subscribe_form = SubscribeForm(tariffs_choices, quotas, request.POST)
 
     partner = Partner.objects.get(user__email=request.user.email)
 
@@ -190,9 +191,9 @@ def checkout(request):
 @require_http_methods(["POST"])
 @login_required(login_url='myapp:login')
 def subscribe(request):
-    tariffs, quotas, pricing = retrieve_data_from_request(request)
+    tariffs_choices, quotas, pricing = retrieve_data_from_request(request)
 
-    sub_form = SubscribeForm(tariffs, quotas, request.POST)
+    sub_form = SubscribeForm(tariffs_choices, quotas, request.POST)
 
     if sub_form.is_valid():
         partner = Partner.objects.get(user__email=request.user.email)
@@ -220,7 +221,7 @@ def subscribe(request):
             return redirect('myapp:account_profile')
 
         tariff_code = sub_form.cleaned_data['tariff']
-        tariff_name = dict(tariffs)[tariff_code]
+        tariff_name = dict(tariffs_choices)[tariff_code]
 
         s = Subscription(
             partner=partner,
