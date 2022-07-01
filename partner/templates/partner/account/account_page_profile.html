@@ -1,0 +1,26 @@
+{% extends 'partner/main.html' %}
+{% block title %}
+Личный кабинет
+{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-4" style="max-width: 1200px;">
+
+        {% include 'partner/account/account_header.html' %}
+
+        {% include 'partner/account/account_navbar.html' with page=page %}
+
+        <div class="row">
+            <div class="col-lg-4 {% if checkout %}d-lg-block d-none{% endif %}">
+                {% include 'partner/account/account_overall.html' with partner=partner overall=overall %}
+            </div>
+            <div class="col-lg-8">
+                {% if not checkout%}{% include 'partner/account/account_subscribe-form.html' with form=subscribe_form tariffs_json=tariff_json %}{% endif %}
+                {% if checkout%}{% include 'partner/account/account_checkout.html' with form=subscribe_form pricing=pricing %}{% endif %}
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

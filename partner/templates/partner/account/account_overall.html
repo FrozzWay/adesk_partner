@@ -1,0 +1,38 @@
+<table class="table" style="max-width: 400px;">
+    <tbody>
+        <tr>
+            <td colspan="2" class="fw-bold ps-0">
+                Общая информация
+            </td>
+        </tr>
+        <tr>
+            <td>ИНН</td>
+            <td class="text-end">{{ partner.inn }}</td>
+        </tr>
+        <tr class="">
+            <td style="border-bottom: none">Номер договора</td>
+            <td style="border-bottom: none" class="text-end">{{ partner.contract_number }}</td>
+        </tr>
+        <tr>
+            <td colspan="2" class="fw-bold pt-3 ps-0">
+                Сводка продаж
+            </td>
+        </tr>
+        <tr>
+            <td>Сумма продаж</td>
+            <td class="text-end">{{ overall.sales.cost_value__sum|floatformat:"2" }}</td>
+        </tr>
+        <tr>
+            <td>Сумма заработка</td>
+            <td class="text-end">{{ overall.revenue.val|floatformat:"2" }}</td>
+        </tr>
+        <tr>
+            <td>Процент комиссии</td>
+            <td class="text-end">{{ partner.commission }}</td>
+        </tr>
+        <tr>
+            <td>Задолженность</td>
+            <td class="text-end">{{ partner.debt }}</td>
+        </tr>
+    </tbody>
+</table>

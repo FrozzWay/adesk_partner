@@ -1,0 +1,34 @@
+{% extends 'partner/main.html' %}
+{% load custom_tags %}
+
+{% block title %}
+Adesk Partner - Вход
+{% endblock %}
+
+{% block content %}
+    <div class="container p-4 border mt-sm-5" style="max-width: 450px">
+        <h1 class="display-6 text-center pb-4">Adesk Partner</h1>
+        {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Неверный email или пароль.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+        <form action="{% url 'partner:login' %}" method="post" class="row g-3">
+            {% csrf_token %}
+            <div class="col-12">
+                {{ form.username | add_classes:'form-control' }}
+            </div>
+            <div class="col-12">
+                {{ form.password | add_classes:'form-control' }}
+            </div>
+            <div class="col-12 mt-4 text-center ">
+                <button type="submit" class="btn btn-primary btn-lg px-4 w-100 ">Вход</button>
+            </div>
+        </form>
+    </div>
+
+<div class="container p-4 border rounded mt-3"  style="max-width: 450px">
+    <p class="text-center mb-0">Хотите стать партнёром? <a href="{%  url 'partner:registration' %}" class="text-decoration-none">Оставьте заявку</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'partner/main.html' %}
+
+{% block title %}
+История
+{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-4" style="max-width: 1200px;">
+
+        {% include 'partner/account/account_header.html' %}
+
+        {% include 'partner/account/account_navbar.html' %}
+
+        {% if messages %}
+            {% for message in messages %}{% endfor %}
+            <div class="alert alert-success">Вы успешно подписали пользователя.</div>
+        {% endif %}
+
+        {% include 'partner/account/account_subList.html' with subs_table=subs_table %}
+
+    </div>
+
+{% endblock %}

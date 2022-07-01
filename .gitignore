@@ -1,3 +1,4 @@
 /debug.py
 /manage.py
-/myapp/migrations/
+/.env
+/partner/static/
