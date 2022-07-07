@@ -40,19 +40,23 @@
             {% endif %}
         {% endfor %}
 
-        <div class="col-12 mt-2 border-top">
-            <label class="form-label pe-sm-1">Стоимость:</label>
-            <p class="text-wrap px-2 fs-5 d-inline" style="/* color: #fd7e14; */">
-                {% for extraQuota in pricing.extraQuotas %}
-                    {% if not forloop.last %}
-                        {{ extraQuota.price }} +
-                    {% else %}
-                        {{ extraQuota.price }}
-                    {% endif %}
-                {% endfor %}
-            </p>
-            <span class="fs-5"> = {{ pricing.quotas_sum }}</span>
-        </div>
+        {% if pricing.extraQuotas|length > 0 %}
+            <div class="col-12 mt-2 border-top">
+                <label class="form-label pe-sm-1">Стоимость:</label>
+                <p class="text-wrap px-2 fs-5 d-inline" style="/* color: #fd7e14; */">
+                    {% for extraQuota in pricing.extraQuotas %}
+                        {% if not forloop.last %}
+                            {{ extraQuota.price }} +
+                        {% else %}
+                            {{ extraQuota.price }}
+                        {% endif %}
+                    {% endfor %}
+                </p>
+                {% if pricing.extraQuotas|length > 1 %}
+                    <span class="fs-5"> = {{ pricing.quotas_sum }}</span>
+                {% endif %}
+            </div>
+        {% endif %}
 
         <div class="col-12 mt-2">
             <div class="mark d-inline py-2">

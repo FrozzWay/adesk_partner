@@ -3,7 +3,6 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.forms import TextInput, PasswordInput
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from requests import get as api_get
 
 from .models import User, Partner
 
@@ -76,7 +75,7 @@ class SubscribeForm(forms.Form):
         quotas = tariff_json['tariffs'][0]['quotas']
         for quota in quotas:
             code = quota['code']
-            self.fields[code] = forms.IntegerField(label=quota['name'], min_value=1)
+            self.fields[code] = forms.IntegerField(label=quota['name'])
 
     def clean(self):
         cleaned_data = super().clean()

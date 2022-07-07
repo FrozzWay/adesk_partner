@@ -11,11 +11,11 @@ services:
     environment:
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
-
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
+
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-      DJANGO_BEARER_TOKEN_SUBSCRIBE: ${DJANGO_BEARER_TOKEN_SUBSCRIBE}
+      DJANGO_APP_TOKEN_SUBSCRIBE: ${DJANGO_APP_TOKEN_SUBSCRIBE}
       DJANGO_DEBUG: ${DJANGO_DEBUG}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
 
@@ -23,9 +23,9 @@ services:
       DJANGO_EMAIL_HOST_PASSWORD: ${DJANGO_EMAIL_HOST_PASSWORD}
       DJANGO_EMAIL_HOST_USER: ${DJANGO_EMAIL_HOST_USER}
       DJANGO_EMAIL_PORT: ${DJANGO_EMAIL_PORT}
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
-      EMAIL_USE_TLS: ${EMAIL_USE_TLS}
-      EMAIL_USE_SSL: ${EMAIL_USE_SSL}
+
+      DJANGO_AUTH_USER: ${DJANGO_AUTH_USER}
+      DJANGO_AUTH_PASSWORD: ${DJANGO_AUTH_PASSWORD}
 
 
     depends_on:
@@ -48,9 +48,11 @@ services:
       - 443:443
     volumes:
       - static_files:/app/staticfiles
+      - letsencrypt:/etc/letsencrypt
     depends_on:
       - django_app
 
 volumes:
   postgres-data:
   static_files:
+  letsencrypt:

@@ -1,10 +1,12 @@
 import decimal
+import json
 from json import loads
 
 import requests as req
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Sum, F
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -60,16 +62,16 @@ class Api:
         return Api.__make_request('post', url, data, *args, **kwargs)
 
     @staticmethod
-    def __make_request(method, url, data=None, request=None, headers=None):
+    def __make_request(method, url, data=None, request=None, headers=None, auth=None):
         try:
             if method == "get":
-                r = req.get(url, timeout=2, headers=headers)
+                r = req.get(url, timeout=2, headers=headers, auth=auth, verify=False)
             if method == "post":
-                r = req.post(url, data=data, timeout=10, headers=headers)
-        except (req.Timeout, req.ConnectionError):
+                r = req.post(url, data=data, timeout=10, headers=headers, auth=auth, verify=False)
+        except (req.Timeout, req.ConnectionError) as e:
             if request:
                 messages.warning(request, message="Сервис оформления подписок недоступен.")
-            return redirect('partner:account_profile')
+            raise ConnectionError
         return Api.__raise_for_status(r, request)
 
     @staticmethod
@@ -79,7 +81,7 @@ class Api:
         except req.HTTPError:
             if request:
                 messages.warning(request, message="Сервер оформления подписок недоступен.")
-            return redirect('partner:account_profile')
+            raise ConnectionError
         return r.json()
 
 
@@ -88,35 +90,52 @@ def get_pricing(request):
     """
     Возвращает
      \n tariffs_json = объект тарифов
-     \n quotas = [ {*code*: "", *name*: ""}, ... ] -- список существующих квот
-     \n pricing = {...} -- рассчитанная стоимость подписки для переданных в запросе данных
+     \n tariff_obj -- объект тарифа, указанного в request
+     \n extra_quotas - extra квоты {code: value}
+     \n pricing = {...} -- рассчитанная стоимость подписки
+     \n sub_form
     """
 
     tariffs_json = Api.get('https://adesk.ru/api/tariffs', request=request)
-    if isinstance(tariffs_json, HttpResponseRedirect):
-        return tariffs_json
 
-    quotas = tariffs_json['tariffs'][0]['quotas']
+    sub_form = SubscribeForm(tariffs_json, data=request.POST)
 
-    api_data = {
-        'client_email': request.POST.get('client_email'),
-        'period': request.POST.get('period'),
-        'tariff': request.POST.get('tariff'),
-        'extra_quotas': {}
-    }
+    if sub_form.is_valid():
 
-    for quota in quotas:
-        code = quota['code']
-        api_data['extra_quotas'][code] = request.POST.get(code)
+        tariff_code = sub_form.cleaned_data['tariff']
+        tariff_obj = next(filter(lambda t: t['code'] == tariff_code, tariffs_json['tariffs']))
 
-    # pricing = Api.post("https://api.adesk.ru/v1/partner/checkout-subscription", data=api_data, request=request)
-    pricing = debug_pricing()
-    if isinstance(pricing, HttpResponseRedirect):
-        return pricing
+        api_data = {
+            'client_email': sub_form.cleaned_data['client_email'],
+            'period': sub_form.cleaned_data['period'],
+            'tariff': tariff_code,
+            'extra_quotas': {},
+            'extra_options': "[]",
+        }
 
-    pricing['quotas_sum'] = sum([q['price'] for q in pricing['extraQuotas']])
+        for quota in tariff_obj['quotas']:
+            code = quota['code']
+            default_quota_value = quota['quantity']
+            extra_value = sub_form.cleaned_data[code] - default_quota_value
+            if extra_value > 0:
+                api_data['extra_quotas'][code] = extra_value
 
-    return tariffs_json, quotas, pricing
+        api_data['extra_quotas'] = json.dumps(api_data['extra_quotas'])
+        headers = {"App-Token": settings.APP_TOKEN_SUBSCRIBE}
+
+        r = Api.post(settings.CHECKOUT_LINK, data=api_data, request=request, auth=settings.DEV_AUTH, headers=headers)
+
+        if r['success'] is False:
+            messages.error(request, message=r['message'])
+            raise ValidationError(r['message'])
+
+        pricing = r['pricing']
+        pricing['quotas_sum'] = sum([q['price'] for q in pricing['extraQuotas']])
+
+        return tariffs_json, tariff_obj, api_data['extra_quotas'], pricing, sub_form
+
+    messages.error(request, message='Данные указаны неверно.')
+    raise ValidationError("")
 
 
 class AccountProfileView(LoginRequiredMixin, View):
@@ -129,11 +148,10 @@ class AccountProfileView(LoginRequiredMixin, View):
             tariffs_json = None
             subscribe_form = SubscribeForm(None, disable_form=True)
         else:
-            tariffs_json = Api.get('https://adesk.ru/api/tariffs', request=request)
-
-            if isinstance(tariffs_json, HttpResponseRedirect):
-                return tariffs_json
-
+            try:
+                tariffs_json = Api.get('https://adesk.ru/api/tariffs', request=request)
+            except ConnectionError:
+                return redirect('partner:account_profile')
             subscribe_form = SubscribeForm(tariffs_json)
 
         partner = request.user.partner
@@ -179,20 +197,19 @@ class CheckoutView(LoginRequiredMixin, View):
         return redirect('partner:account_profile')
 
     def post(self, request):
-        r = get_pricing(request)
+        try:
+            r = get_pricing(request)
+        except (ConnectionError, ValidationError):
+            return redirect('partner:account_profile')
 
-        if isinstance(r, HttpResponseRedirect):
-            return r
+        tariffs_json, tariff_obj, extra_quotas, pricing, sub_form = r
 
-        tariffs_json, quotas, pricing = r
-
-        subscribe_form = SubscribeForm(tariffs_json, data=request.POST)
         partner = request.user.partner
 
         return render(request, self.template_name,
                       context={
                           'partner': partner,
-                          'subscribe_form': subscribe_form,
+                          'subscribe_form': sub_form,
                           'checkout': True,
                           'pricing': pricing,
                           'page': {'profile': {'active': 'active'}}
@@ -201,67 +218,61 @@ class CheckoutView(LoginRequiredMixin, View):
 
 class SubscribeView(LoginRequiredMixin, View):
     def post(self, request):
-        r = get_pricing(request)
+        try:
+            r = get_pricing(request)
+        except (ConnectionError, ValidationError):
+            return redirect('partner:account_profile')
 
-        if isinstance(r, HttpResponseRedirect):
-            return r
+        tariffs_json, tariff_obj, extra_quotas, pricing, sub_form = r
 
-        tariffs_json, quotas, pricing = r
+        quotas_all = dict()
 
-        sub_form = SubscribeForm(tariffs_json, data=request.POST)
+        for quota in tariff_obj['quotas']:
+            code = quota['code']
+            quotas_all[code] = sub_form.cleaned_data[code]
+
         partner = request.user.partner
 
-        if sub_form.is_valid():
+        total_price = decimal.Decimal(pricing['totalPrice'])
+        partner_commission = total_price * partner.commission / 100
 
-            quotas_codes = [quota['code'] for quota in quotas]
+        api_data = {
+            'client_email': sub_form.cleaned_data['client_email'],
+            'partner_email': request.user.email,
+            'partner_commission': partner_commission,
+            'period': sub_form.cleaned_data['period'],
+            'tariff': sub_form.cleaned_data['tariff'],
+            'extra_quotas': extra_quotas,
+            'extra_options': "[]",
+        }
+        headers = {"App-Token": f"{settings.APP_TOKEN_SUBSCRIBE}"}
 
-            quotas = dict()
+        try:
+            r = Api.post(settings.SUBSCRIBE_LINK, data=api_data, request=request, headers=headers,
+                         auth=settings.DEV_AUTH)
+        except ConnectionError:
+            return redirect('partner:account_profile')
 
-            for field in sub_form.fields:
-                if field in quotas_codes:
-                    quotas[field] = sub_form.cleaned_data[field]
+        if r['success'] is False:
+            messages.error(request, message=r['message'])
+            return redirect('partner:account_profile')
 
-            api_data = {
-                'client_email': sub_form.cleaned_data['client_email'],
-                'period': sub_form.cleaned_data['period'],
-                'tariff': sub_form.cleaned_data['tariff'],
-                'extra_quotas': quotas
-            }
-            headers = {"Authorization": f"Bearer {settings.BEARER_TOKEN_SUBSCRIBE}"}
+        tariff_name = pricing['tariff']['name']
 
-            r = {"success": True}
-            # r = {"success": False, "message": "err message"}
-            # r = Api.post("https://api.adesk.ru/v1/partner/subscription",
-            #             data=api_data, request=request, headers=headers)
+        s = Subscription(
+            partner=partner,
+            email=sub_form.cleaned_data['client_email'],
+            cost_value=pricing['totalPrice'],
+            commission=partner.commission,
+            reg_date=timezone.now(),
+            period=sub_form.cleaned_data['period'],
+            tariff=tariff_name,
+            quotas=quotas_all
+        )
 
-            if isinstance(r, HttpResponseRedirect):
-                return r
+        partner.debt += total_price * (1 - partner.commission / 100)
+        partner.save(update_fields=['debt'])
+        s.save()
 
-            if r['success'] is False:
-                messages.error(request, message=r['message'])
-                return redirect('partner:account_profile')
-
-            tariff_name = pricing['tariff']['name']
-
-            s = Subscription(
-                partner=partner,
-                email=sub_form.cleaned_data['client_email'],
-                cost_value=pricing['totalPrice'],
-                commission=partner.commission,
-                reg_date=timezone.now(),
-                period=sub_form.cleaned_data['period'],
-                tariff=tariff_name,
-                quotas=quotas
-            )
-
-            total_price = decimal.Decimal(pricing['totalPrice'])
-
-            partner.debt += total_price * (1 - partner.commission / 100)
-            partner.save(update_fields=['debt'])
-            s.save()
-
-            messages.success(request, 'Пользователь успешно подписан.')
-            return redirect('partner:account_history')
-
-        messages.error(request, message='Данные указаны неверно.')
-        return redirect('partner:account_profile')
+        messages.success(request, 'Пользователь успешно подписан.')
+        return redirect('partner:account_history')

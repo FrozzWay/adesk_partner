@@ -20,19 +20,19 @@
         </tr>
         <tr>
             <td>Сумма продаж</td>
-            <td class="text-end">{{ overall.sales.cost_value__sum|floatformat:"2" }}</td>
+            <td class="text-end">{{ overall.sales.cost_value__sum|floatformat:"2" }} ₽</td>
         </tr>
         <tr>
             <td>Сумма заработка</td>
-            <td class="text-end">{{ overall.revenue.val|floatformat:"2" }}</td>
+            <td class="text-end">{{ overall.revenue.val|floatformat:"2" }} ₽</td>
         </tr>
         <tr>
             <td>Процент комиссии</td>
-            <td class="text-end">{{ partner.commission }}</td>
+            <td class="text-end">{{ partner.commission }} %</td>
         </tr>
         <tr>
             <td>Задолженность</td>
-            <td class="text-end">{{ partner.debt }}</td>
+            <td class="text-end">{{ partner.debt }} ₽</td>
         </tr>
     </tbody>
 </table>

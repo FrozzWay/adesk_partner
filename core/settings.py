@@ -23,10 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-CSRF_COOKIE_SECURE = not os.getenv('DJANGO_DEBUG', True)
-SESSION_COOKIE_SECURE = not os.getenv('DJANGO_DEBUG', True)
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-BEARER_TOKEN_SUBSCRIBE = os.getenv('DJANGO_BEARER_TOKEN_SUBSCRIBE', '')
+CSRF_COOKIE_SECURE = not os.getenv('DJANGO_DEBUG', False)
+SESSION_COOKIE_SECURE = not os.getenv('DJANGO_DEBUG', False)
+APP_TOKEN_SUBSCRIBE = os.getenv('DJANGO_APP_TOKEN_SUBSCRIBE', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', False)
@@ -38,13 +37,19 @@ EMAIL_HOST = os.getenv('DJANGO_EMAIL_HOST', 'localhost')
 EMAIL_HOST_PASSWORD = os.getenv('DJANGO_EMAIL_HOST_PASSWORD', '')
 EMAIL_HOST_USER = os.getenv('DJANGO_EMAIL_HOST_USER', '')
 EMAIL_PORT = os.getenv('DJANGO_EMAIL_PORT', 25)
-DEFAULT_FROM_EMAIL = os.getenv('DJANGO_DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+EMAIL_VERBOSE_NAME = "Adesk"
+DEFAULT_FROM_EMAIL = '%s <%s>' % (EMAIL_VERBOSE_NAME, EMAIL_HOST_USER)
 
-EMAIL_USE_TLS = os.getenv('DJANGO_EMAIL_USE_TLS', False)
+EMAIL_USE_TLS = os.getenv('DJANGO_EMAIL_USE_TLS', True)
 EMAIL_USE_SSL = os.getenv('DJANGO_EMAIL_USE_SSL', False)
 
-if DEBUG:
+if EMAIL_HOST == "localhost":
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+CHECKOUT_LINK = "https://api.dev.adesk.ru/v1/partner/checkout-subscription"
+SUBSCRIBE_LINK = "https://api.dev.adesk.ru/v1/partner/subscription"
+
+DEV_AUTH = (os.getenv('DJANGO_AUTH_USER'), os.getenv('DJANGO_AUTH_PASSWORD'))
 
 
 # Application definition

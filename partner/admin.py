@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.template import Engine, Context
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django_object_actions import DjangoObjectActions
@@ -74,7 +75,7 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
     # The fields to be used in displaying the User model.
     list_display = ('__str__', 'partner_d', 'date_registered', 'is_active', 'date_activated')
     list_filter = ('is_staff',)
-    readonly_fields = ('password',)
+    readonly_fields = ('password', 'email')
     fieldsets = (
         (None, {'fields': ('email', 'password_field')}),
         ('Права', {'fields': ('is_active',)}),
@@ -96,9 +97,18 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
     def send_credentials_via_email(self, request, obj):
         password = obj.generate_and_change_password()
         # ... send credentials via email ...
+        template = (Engine.get_default()).get_template('partner/email.html')
+        context = Context({
+            "title": "Завершение регистрации Adesk Partner",
+            "text": f"Теперь вы можете войти в личный кабинет партнёра."
+                    f"<br><br>Логин: {obj.email}"
+                    f"<br>Пароль: {password}",
+            "link_text": "Войти",
+            "link_url": ""
+        })
         email = EmailMessage(
             subject="Данные для входа в личный кабинет Adesk Partner",
-            body=f"<body> {password} </body>",
+            body=template.render(context),
             to=[obj.email],
         )
         email.content_subtype = "html"
@@ -129,6 +139,9 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'partner', 'cost_value', 'commission', 'reg_date', 'period', 'tariff')
     search_fields = ['partner__first_name', 'partner__last_name', 'partner__company_name', 'email', 'tariff']
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 admin.site.register(User, UserAdmin)
