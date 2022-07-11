@@ -5,3 +5,6 @@ RUN pip install -r requirements.txt
 COPY partner .
 COPY core .
 COPY manage.py .
+
+
+# end
