@@ -6,3 +6,4 @@ COPY partner ./partner
 COPY core ./core
 COPY manage.py .
 COPY foo.txt .
+COPY bar.txt .
