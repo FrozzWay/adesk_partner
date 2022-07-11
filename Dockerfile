@@ -5,5 +5,3 @@ RUN pip install -r requirements.txt
 COPY partner ./partner
 COPY core ./core
 COPY manage.py .
-COPY foo.txt .
-COPY bar.txt .
