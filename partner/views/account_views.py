@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.views import View
 
 from ..forms import SubscribeForm
-from ..models import Subscription
+from ..models import Subscription, Partner
 
 
 def debug_pricing():
@@ -138,10 +138,23 @@ def get_pricing(request):
     raise ValidationError("")
 
 
+def get_overall(partner):
+    revenue_func = F('cost_value') * F('commission') / 100
+    return {
+        'revenue': Subscription.objects.filter(partner=partner).aggregate(val=Sum(revenue_func)),
+        'sales': Subscription.objects.filter(partner=partner).aggregate(Sum('cost_value'))
+    }
+
+
 class AccountProfileView(LoginRequiredMixin, View):
     template_name = 'partner/account/account_page_profile.html'
 
     def get(self, request):
+        try:
+            partner = request.user.partner
+        except Partner.DoesNotExist:
+            return redirect('/admin')
+
         api_down_messages = [m for m in messages.get_messages(request) if m.level == 30]
 
         if api_down_messages:
@@ -154,12 +167,7 @@ class AccountProfileView(LoginRequiredMixin, View):
                 return redirect('partner:account_profile')
             subscribe_form = SubscribeForm(tariffs_json)
 
-        partner = request.user.partner
-        revenue_func = F('cost_value') * F('commission') / 100
-        overall = {
-            'revenue': Subscription.objects.filter(partner=partner).aggregate(val=Sum(revenue_func)),
-            'sales': Subscription.objects.filter(partner=partner).aggregate(Sum('cost_value'))
-        }
+        overall = get_overall(partner)
         return render(request, self.template_name,
                       context={
                           'partner': partner,
@@ -205,10 +213,12 @@ class CheckoutView(LoginRequiredMixin, View):
         tariffs_json, tariff_obj, extra_quotas, pricing, sub_form = r
 
         partner = request.user.partner
+        overall = get_overall(partner)
 
         return render(request, self.template_name,
                       context={
                           'partner': partner,
+                          'overall': overall,
                           'subscribe_form': sub_form,
                           'checkout': True,
                           'pricing': pricing,
@@ -225,11 +235,16 @@ class SubscribeView(LoginRequiredMixin, View):
 
         tariffs_json, tariff_obj, extra_quotas, pricing, sub_form = r
 
-        quotas_all = dict()
+        quotas_all = []
 
         for quota in tariff_obj['quotas']:
             code = quota['code']
-            quotas_all[code] = sub_form.cleaned_data[code]
+            obj = {
+                "code": code,
+                "name": quota['name'],
+                "value": sub_form.cleaned_data[code]
+            }
+            quotas_all.append(obj)
 
         partner = request.user.partner
 

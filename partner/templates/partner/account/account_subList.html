@@ -20,7 +20,12 @@
                     <td>{{ row.commission }}</td>
                     <td>{{ row.reg_date|localtime|date:"d/m/Y G:i" }}</td>
                     <td>{{ row.period }} мес.</td>
-                    <td>{{ row.tariff }}</td>
+                    <td>
+                        <button type="button" class="border-0 p-0 bg-transparent text-decoration-underline" data-bs-toggle="tooltip" data-bs-html="true"
+                                title="{% for quota in row.quotas %}{{ quota.name }}: {{ quota.value }}<br>{% endfor %}">
+                          {{ row.tariff }}
+                        </button>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
