@@ -76,7 +76,7 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
     # The fields to be used in displaying the User model.
     list_display = ('__str__', 'partner_d', 'date_registered', 'is_active', 'date_activated')
     list_filter = ('is_staff',)
-    readonly_fields = ('password', 'email')
+    readonly_fields = ('password', 'email', 'is_active')
     fieldsets = (
         (None, {'fields': ('email', 'password_field')}),
         ('Права', {'fields': ('is_active',)}),
@@ -121,6 +121,11 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
                               level=messages.ERROR)
 
     def make_active(self, request, obj):
+        commission = obj.partner.commission
+        if commission is None:
+            self.message_user(request, "Необходимо установить процент комиссии партнёра перед активацией",
+                              level=messages.ERROR)
+            return
         obj.is_active = True
         obj.date_activated = timezone.now()
         obj.save(update_fields=['is_active', 'date_activated'])
