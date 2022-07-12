@@ -3,6 +3,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.template import Engine, Context
+from django.urls import reverse
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django_object_actions import DjangoObjectActions
@@ -104,7 +105,7 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
                     f"<br><br>Логин: {obj.email}"
                     f"<br>Пароль: {password}",
             "link_text": "Войти",
-            "link_url": ""
+            "link_url": reverse('partner:login')
         })
         email = EmailMessage(
             subject="Данные для входа в личный кабинет Adesk Partner",
