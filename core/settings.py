@@ -28,7 +28,7 @@ SESSION_COOKIE_SECURE = not os.getenv('DJANGO_DEBUG', False)
 APP_TOKEN_SUBSCRIBE = os.getenv('DJANGO_APP_TOKEN_SUBSCRIBE', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', False)
+DEBUG = int(os.getenv('DJANGO_DEBUG', False))
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', "*").split(" ")
 
