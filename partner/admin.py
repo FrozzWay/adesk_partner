@@ -114,6 +114,9 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
         )
         email.content_subtype = "html"
         if email.send(fail_silently=True):
+            if obj.is_active is False:
+                if not self.make_active(request, obj):
+                    return
             self.message_user(request, "Данные для входа отправлены.",
                               level=messages.SUCCESS)
         else:
@@ -123,13 +126,14 @@ class UserAdmin(DjangoObjectActions, BaseUserAdmin):
     def make_active(self, request, obj):
         commission = obj.partner.commission
         if commission is None:
-            self.message_user(request, "Необходимо установить процент комиссии партнёра перед активацией",
+            self.message_user(request, "Необходимо установить процент комиссии партнёра.",
                               level=messages.ERROR)
             return
         obj.is_active = True
         obj.date_activated = timezone.now()
         obj.save(update_fields=['is_active', 'date_activated'])
-        self.message_user(request, "Аккаунт активирован", level=messages.SUCCESS)
+        self.message_user(request, "Аккаунт активирован", level=messages.INFO)
+        return True
 
     make_active.label = "Активировать"
 
