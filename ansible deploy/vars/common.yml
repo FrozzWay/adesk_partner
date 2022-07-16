@@ -1,0 +1,7 @@
+# Здесь указываем общие переменные, необходимые для сборки
+
+app_root_dir: /home/okunevad/Applications/Adesk-partner
+
+code_repository: "git@github.com:FrozzWay/adesk_partner.git"
+code_version: master
+code_repo_key_file: /home/okunevad/.ssh/id_ed25519

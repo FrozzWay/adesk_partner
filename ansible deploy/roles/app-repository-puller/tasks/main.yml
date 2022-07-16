@@ -1,0 +1,12 @@
+- name: Update code from the repository
+  git:
+    repo: "{{ code_repository }}"
+    dest: "{{ app_root_dir }}"
+    accept_hostkey: yes
+    clone: yes
+    force: yes
+    update: yes
+    version: "{{ code_version }}"
+    key_file: "{{ code_repo_key_file }}"
+  become: yes
+ # become_user: jenkins-ci

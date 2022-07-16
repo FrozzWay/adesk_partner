@@ -1,0 +1,21 @@
+# Здесь хранятся переменные для staging
+database_host: postgres
+database_user: manage_user
+# database_password: *vault*
+database_name: db_staging
+django_superuser_email: 'admin@example.com'
+# django_superuser_password: *vault*
+# django_secret_key: *vault*
+# django_app_token_subscribe: *vault*
+django_allowed_hosts: '*'
+django_debug: 0
+domain: example.com
+django_email_host: smtp.yandex.ru
+# django_email_host_password: *vault*
+django_email_host_user: 'srbot@antidasoftware.com'
+django_email_port: 587
+# django_auth_user: *vault*
+# django_auth_password: '*vault*
+django_debug: 0
+service_name: django
+

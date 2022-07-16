@@ -1,0 +1,54 @@
+version: "3.7"
+services:
+  django_app:
+    image: "{{ service_name }}_app"
+    restart: unless-stopped
+    command: "gunicorn --bind=0.0.0.0:8000 core.wsgi"
+    volumes:
+      - "{{ app_root_dir }}/staticfiles:/app/staticfiles"
+    environment:
+      DATABASE_HOST: {{ database_host }}
+      DATABASE_USER: {{ database_user }}
+      DATABASE_PASSWORD: {{ database_password  | replace("$", "$$") }}
+      DATABASE_NAME: {{ database_name }}
+      DJANGO_SUPERUSER_PASSWORD: {{ django_superuser_password  | replace("$", "$$") }}
+
+      DJANGO_SECRET_KEY: {{ django_secret_key  | replace("$", "$$") }}
+      DJANGO_APP_TOKEN_SUBSCRIBE: {{ django_app_token_subscribe  | replace("$", "$$") }}
+      DJANGO_DEBUG: {{ django_debug }}
+      DJANGO_ALLOWED_HOSTS: {{ django_allowed_hosts }}
+
+      DJANGO_EMAIL_HOST: {{ django_email_host }}
+      DJANGO_EMAIL_HOST_PASSWORD: {{ django_email_host_password  | replace("$", "$$") }}
+      DJANGO_EMAIL_HOST_USER: {{ django_email_host_user }}
+      DJANGO_EMAIL_PORT: {{ django_email_port }}
+
+      DJANGO_AUTH_USER: {{ django_auth_user }}
+      DJANGO_AUTH_PASSWORD: {{ django_auth_password | replace("$", "$$") }}
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14-alpine
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: {{ database_password }}
+      POSTGRES_USER: {{ database_user }}
+      POSTGRES_DB: {{ database_name }}
+
+  nginx:
+    image: "{{ service_name }}_nginx"
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "{{ app_root_dir }}/staticfiles:/staticfiles"
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - django_app
+
+volumes:
+  postgres-data:

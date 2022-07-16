@@ -1,0 +1,14 @@
+- name: Deploy application on production
+  hosts: 127.0.0.1
+  connection: local
+  become: yes
+  vars_files:
+    - vars/common.yml
+    - vars/staging.yml
+    - vars/staging-secret.yml
+  roles:
+    - installer
+    - ansible-role-docker-master
+    - app-repository-puller
+    - nginx-config
+    - docker-runner
