@@ -18,7 +18,7 @@ Adesk — это поставщик ПО, продаваемого по подп
 
 [Подробнее о задании](https://docs.google.com/document/d/1shrwljSlEMJJt53IOk3PkahRgWYm_7H1WTHU7AoXCrw/edit?usp=sharing) [docs.google]
 
-Информация о тарифах, их квотах, ценах и пользователях Adesk подтягивается по api и динамически генирирует django форму. Сигнал об оформлении подписки также уходит по api к Adesk.
+Информация о тарифах, их квотах, ценах и пользователях Adesk подтягивается по api и динамически генерирует django форму. Сигнал об оформлении подписки также уходит по api к Adesk.
 
 #### Спроектированная база данных
 <img src= "https://user-images.githubusercontent.com/59840795/183479197-b900f998-6c08-4f2b-8fd4-c14dbfd9e30c.png"  width="500"/>
